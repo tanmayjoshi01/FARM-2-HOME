@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
@@ -15,28 +15,17 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const savedAddresses = [
-  {
-    id: 1,
-    name: "Ravi Kumar",
-    phone: "9876543210",
-    address: "12, MG Road, Koramangala, 3rd Block",
-    city: "Bengaluru",
-    state: "Karnataka",
-    pin: "560034",
-    tag: "Home",
-  },
-  {
-    id: 2,
-    name: "Priya Singh",
-    phone: "9123456780",
-    address: "45, Park Street, Fort Area",
-    city: "Mumbai",
-    state: "Maharashtra",
-    pin: "400001",
-    tag: "Office",
-  },
-];
+interface SavedAddress {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pin: string;
+  tag: string;
+  is_default?: boolean;
+}
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -72,8 +61,11 @@ const INDIAN_STATES = [
 export function Address() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selected, setSelected] = useState<number | null>(1);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -84,7 +76,130 @@ export function Address() {
     tag: "Home",
   });
 
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!user?.id) {
+        setSavedAddresses([]);
+        setSelected(null);
+        setLoadingAddresses(false);
+        return;
+      }
+
+      try {
+        setLoadingAddresses(true);
+        const { data, error } = await supabase
+          .from("addresses")
+          .select("id, name, phone, address_line, city, state, pincode, tag, is_default")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        const mapped: SavedAddress[] = (data || []).map((addr: any) => ({
+          id: String(addr.id),
+          name: addr.name || "",
+          phone: addr.phone || "",
+          address: addr.address_line || "",
+          city: addr.city || "",
+          state: addr.state || "",
+          pin: String(addr.pincode || ""),
+          tag: addr.tag || "Home",
+          is_default: !!addr.is_default,
+        }));
+
+        setSavedAddresses(mapped);
+
+        if (mapped.length) {
+          const defaultAddr = mapped.find((addr) => addr.is_default) || mapped[0];
+          setSelected(defaultAddr.id);
+        } else {
+          setSelected(null);
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to load saved addresses");
+      } finally {
+        setLoadingAddresses(false);
+      }
+    };
+
+    void fetchAddresses();
+  }, [user?.id]);
+
   const selectedAddr = savedAddresses.find((a) => a.id === selected);
+
+  const handleSaveAddress = async () => {
+    if (!user?.id) {
+      toast.error("Please log in again");
+      return;
+    }
+
+    if (!form.name || !form.phone || !form.address || !form.city || !form.state || !form.pin) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.phone)) {
+      toast.error("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(form.pin)) {
+      toast.error("Please enter a valid 6-digit PIN code");
+      return;
+    }
+
+    try {
+      setSavingAddress(true);
+
+      const { data, error } = await supabase
+        .from("addresses")
+        .insert({
+          user_id: user.id,
+          name: form.name,
+          phone: form.phone,
+          address_line: form.address,
+          city: form.city,
+          state: form.state,
+          pincode: form.pin,
+          tag: form.tag,
+          is_default: savedAddresses.length === 0,
+        })
+        .select("id, name, phone, address_line, city, state, pincode, tag, is_default")
+        .single();
+
+      if (error) throw error;
+
+      const newAddress: SavedAddress = {
+        id: String(data.id),
+        name: data.name || "",
+        phone: data.phone || "",
+        address: data.address_line || "",
+        city: data.city || "",
+        state: data.state || "",
+        pin: String(data.pincode || ""),
+        tag: data.tag || "Home",
+        is_default: !!data.is_default,
+      };
+
+      setSavedAddresses((prev) => [newAddress, ...prev]);
+      setSelected(newAddress.id);
+      localStorage.setItem("selectedAddress", JSON.stringify(newAddress));
+      setShowForm(false);
+      setForm({
+        name: "",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        pin: "",
+        tag: "Home",
+      });
+      toast.success("Address saved");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save address");
+    } finally {
+      setSavingAddress(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f9fafb]">
@@ -135,7 +250,13 @@ export function Address() {
                   Saved Addresses
                 </p>
 
-                {savedAddresses.map((addr) => (
+                {loadingAddresses && (
+                  <div className="bg-white rounded-2xl border border-gray-100 p-5 text-sm text-gray-500">
+                    Loading saved addresses...
+                  </div>
+                )}
+
+                {!loadingAddresses && savedAddresses.map((addr) => (
                   <div
                     key={addr.id}
                     onClick={() => setSelected(addr.id)}
@@ -193,6 +314,12 @@ export function Address() {
                     </div>
                   </div>
                 ))}
+
+                {!loadingAddresses && savedAddresses.length === 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+                    You do not have any saved address yet. Add one to continue.
+                  </div>
+                )}
 
                 <button
                   onClick={() => setShowForm(true)}
@@ -316,6 +443,7 @@ export function Address() {
                     <div className="flex gap-2">
                       {["Home", "Office"].map((t) => (
                         <button
+                          type="button"
                           key={t}
                           onClick={() => setForm({ ...form, tag: t })}
                           className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-colors ${
@@ -340,12 +468,12 @@ export function Address() {
                   </button>
                   <button
                     onClick={() => {
-                      setShowForm(false);
-                      setSelected(1);
+                      void handleSaveAddress();
                     }}
+                    disabled={savingAddress}
                     className="flex-1 bg-[#16a34a] text-white py-3 rounded-xl hover:bg-[#15803d] transition-colors font-semibold shadow-md shadow-green-200"
                   >
-                    Save Address
+                    {savingAddress ? "Saving..." : "Save Address"}
                   </button>
                 </div>
               </div>
@@ -387,37 +515,8 @@ export function Address() {
               <button
                 onClick={async () => {
                   if (selectedAddr) {
-                    if (!user?.id) {
-                      toast.error('Please log in again');
-                      return;
-                    }
-
-                    try {
-                      const { data, error } = await supabase
-                        .from('addresses')
-                        .insert({
-                          user_id: user.id,
-                          name: selectedAddr.name,
-                          phone: selectedAddr.phone,
-                          address_line: selectedAddr.address,
-                          city: selectedAddr.city,
-                          state: selectedAddr.state,
-                          pincode: selectedAddr.pin,
-                          tag: selectedAddr.tag,
-                          is_default: false,
-                        })
-                        .select('id')
-                        .single();
-
-                      if (error) throw error;
-
-                      localStorage.setItem('selectedAddress', JSON.stringify({ ...selectedAddr, id: data.id }));
-                    } catch (error: any) {
-                      toast.error(error?.message || 'Failed to save address');
-                      return;
-                    }
-
-                    navigate('/checkout/payment');
+                    localStorage.setItem("selectedAddress", JSON.stringify(selectedAddr));
+                    navigate("/checkout/payment");
                   }
                 }}
                 disabled={!selected}

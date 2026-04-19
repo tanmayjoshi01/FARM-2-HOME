@@ -4,6 +4,7 @@ import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 import { useCart } from "../../context/CartContext";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import {
   CreditCard,
   Smartphone,
@@ -71,6 +72,15 @@ export function Payment() {
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const { cartItems, checkout } = useCart();
+  const merchantUpiId = import.meta.env.VITE_MERCHANT_UPI_ID?.trim();
+  const merchantName = import.meta.env.VITE_MERCHANT_NAME?.trim() || "Farm2Home";
+  const merchantInitials = merchantName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -80,6 +90,14 @@ export function Payment() {
   const gst = Math.round(subtotal * 0.18);
   const delivery = subtotal > 500 ? 0 : 49;
   const total = subtotal + platformFee + gst + delivery;
+  const upiRecipientId = merchantUpiId || upiId.trim();
+  const upiPaymentLink = upiRecipientId
+    ? `upi://pay?pa=${encodeURIComponent(upiRecipientId)}&pn=${encodeURIComponent(
+        merchantName
+      )}&am=${encodeURIComponent(total.toFixed(2))}&cu=INR&tn=${encodeURIComponent(
+        `${merchantName} order payment`
+      )}`
+    : "";
 
   const handlePayment = async () => {
     if (!selected) {
@@ -214,35 +232,113 @@ export function Payment() {
                 {/* UPI Input */}
                 {selected === "upi" && method.id === "upi" && (
                   <div className="mt-4 pl-9">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                      Enter UPI ID
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="yourname@upi"
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#16a34a] text-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {["@okaxis", "@oksbi", "@ybl", "@paytm"].map((suffix) => (
-                        <button
-                          key={suffix}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUpiId((prev) => {
-                              const base = prev.includes("@")
-                                ? prev.split("@")[0]
-                                : prev;
-                              return base + suffix;
-                            });
+                    <div className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                          {merchantUpiId ? "Merchant UPI ID" : "Enter UPI ID"}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="yourname@upi"
+                          value={merchantUpiId || upiId}
+                          onChange={(e) => {
+                            if (!merchantUpiId) {
+                              setUpiId(e.target.value);
+                            }
                           }}
-                          className="text-xs border border-gray-200 rounded-full px-2.5 py-1 text-gray-600 hover:border-[#16a34a] hover:text-[#16a34a] transition-colors"
-                        >
-                          {suffix}
-                        </button>
-                      ))}
+                          readOnly={!!merchantUpiId}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#16a34a] text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {["@okaxis", "@oksbi", "@ybl", "@paytm"].map((suffix) => (
+                            <button
+                              type="button"
+                              key={suffix}
+                              disabled={!!merchantUpiId}
+                              onClick={(e) => {
+                                if (merchantUpiId) {
+                                  e.preventDefault();
+                                  return;
+                                }
+                                e.stopPropagation();
+                                setUpiId((prev) => {
+                                  const base = prev.includes("@")
+                                    ? prev.split("@")[0]
+                                    : prev;
+                                  return base + suffix;
+                                });
+                              }}
+                              className="text-xs border border-gray-200 rounded-full px-2.5 py-1 text-gray-600 hover:border-[#16a34a] hover:text-[#16a34a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {suffix}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-full bg-white border border-gray-100 rounded-2xl px-4 py-3 mb-4 shadow-sm flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 text-left">
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#16a34a] to-[#15803d] text-white flex items-center justify-center font-bold text-sm">
+                              {merchantInitials || "FH"}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900 leading-tight">
+                                Paying to {merchantName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                UPI QR with exact amount
+                              </p>
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-green-50 px-3 py-2 text-right">
+                            <p className="text-[10px] uppercase tracking-wider text-green-600 font-semibold">
+                              Total
+                            </p>
+                            <p className="text-sm font-bold text-[#15803d]">
+                              ₹{total.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-xs font-semibold text-gray-500 mb-2">
+                          Scan QR to pay exact amount
+                        </p>
+                        {upiPaymentLink ? (
+                          <>
+                            <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                              <QRCodeSVG
+                                value={upiPaymentLink}
+                                size={180}
+                                level="M"
+                                includeMargin
+                              />
+                            </div>
+                            <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+                              Scan with any UPI app to pay {merchantName}. Amount is prefilled to ₹{total.toFixed(2)}.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await navigator.clipboard.writeText(upiPaymentLink);
+                                  toast.success("UPI payment link copied");
+                                } catch {
+                                  toast.error("Unable to copy payment link");
+                                }
+                              }}
+                              className="mt-3 text-xs font-semibold text-[#16a34a] hover:text-[#15803d]"
+                            >
+                              Copy UPI payment link
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500 leading-relaxed">
+                            Enter a UPI ID to generate the QR code for {merchantName} and ₹{total.toFixed(2)}.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
