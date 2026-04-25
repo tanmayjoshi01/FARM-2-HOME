@@ -2,52 +2,6 @@
 
 A full-stack agricultural marketplace connecting farmers directly with buyers through auctions and direct sales.
 
-## 🎯 Current Status
-
-✅ **Frontend**: Complete (React + React Router + Tailwind CSS)  
-⚙️ **Backend**: Ready to deploy (Supabase configuration provided)  
-📦 **Integration**: 60% complete (~14 hours remaining)
-
----
-
-## 🚀 TWO WAYS TO COMPLETE (Choose One)
-
-### 🤖 OPTION 1: Automated with Claude (Recommended - 4-5 hours)
-
-**Claude does the integration for you automatically!**
-
-1. Read **[HOW_TO_USE_CLAUDE_PROMPT.md](./HOW_TO_USE_CLAUDE_PROMPT.md)** (10 min)
-2. Copy **[CLAUDE_INTEGRATION_PROMPT.md](./CLAUDE_INTEGRATION_PROMPT.md)** (entire file)
-3. Paste into a new Claude conversation
-4. Claude completes all phases (2-3 hours)
-5. You test as it goes (1 hour)
-6. Done - 100% functional! 🎉
-
-### 👨‍💻 OPTION 2: Manual Implementation (3-4 days)
-
-**Follow step-by-step guides yourself:**
-
-1. Read **[START_HERE.md](./START_HERE.md)** (5 min)
-2. Read **[MASTER_PLAN.md](./MASTER_PLAN.md)** (10 min)
-3. Follow **[IMPLEMENTATION_STEP_BY_STEP.md](./IMPLEMENTATION_STEP_BY_STEP.md)** (Day 1)
-4. Follow **[PHASES_3_TO_8.md](./PHASES_3_TO_8.md)** (Days 2-4)
-5. Deploy - 100% functional! 🎉
-
----
-
-## 📖 COMPLETE DOCUMENTATION
-
-**15 comprehensive guides** - See **[INDEX.md](./INDEX.md)** for full navigation
-
-### Quick Access:
-| What You Need | Read This |
-|---------------|-----------|
-| 📊 **Visual Overview** | [QUICK_VISUAL_GUIDE.md](./QUICK_VISUAL_GUIDE.md) |
-| 🎯 **Full Summary** | [COMPLETE_SOLUTION_SUMMARY.md](./COMPLETE_SOLUTION_SUMMARY.md) |
-| ✅ **What's Done** | [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) |
-| 🗺️ **Timeline** | [ROADMAP.md](./ROADMAP.md) |
-| 📚 **All Docs** | [INDEX.md](./INDEX.md) |
-
 ## ✨ Features
 
 ### For Buyers
@@ -127,7 +81,7 @@ Without Supabase configuration, the app runs in **demo mode**:
 - No data persistence
 - Limited functionality
 
-**To unlock all features, set up Supabase (see QUICK_START.md)**
+
 
 ### Suppressing Console Warnings
 
@@ -140,9 +94,7 @@ VITE_MODE=demo
 
 You can also dismiss the setup notice banner on the login page by clicking the X button.
 
-## 📸 Screenshots
 
-*(Add screenshots here after setup)*
 
 ## 🤝 Contributing
 
@@ -156,11 +108,7 @@ You can also dismiss the setup notice banner on the login page by clicking the X
 
 MIT License - feel free to use for your own projects!
 
-## 🆘 Need Help?
 
-- Check **QUICK_START.md** for setup help
-- Review **INTEGRATION_GUIDE.md** for development patterns
-- See **REPLACEMENT_EXAMPLES.md** for code examples
 
 ---
 
